@@ -61,7 +61,7 @@ import l1_exercises
 data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
 #data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord' # Sequence 2
 # data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord'  # Sequence 3
-show_only_frames = [0, 10]  # show only frames in interval for debugging
+show_only_frames = [1, 1]  # show only frames in interval for debugging
 
 # set pause time between frames in ms (0 = stop between frames until key is pressed)
 vis_pause_time = 0  
@@ -103,7 +103,7 @@ while True:
         lidar_name = dataset_pb2.LaserName.TOP
 
         # Exercise C1-3-1 : print no. of vehicles
-        # l1_exercises.print_no_of_vehicles(frame) 
+        #l1_exercises.print_no_of_vehicles(frame)
 
         # Example C1-3-2 : display camera image
         # l1_examples.display_image(frame)
@@ -147,11 +147,11 @@ while True:
         configs.model = 'darknet'
 
         # Example C2-3-1 : Crop point cloud
-        # lidar_pcl = l1_examples.range_image_to_point_cloud(frame, lidar_name, True)
-        # cropped_pcl = l2_examples.crop_pcl(lidar_pcl, configs, False)
+        #lidar_pcl = l1_examples.range_image_to_point_cloud(frame, lidar_name, True)
+        #cropped_pcl = l2_examples.crop_pcl(lidar_pcl, configs, False)
 
         # Exercise C2-3-2 : Transform metric point coordinates to BEV space
-        # l2_exercises.pcl_to_bev(cropped_pcl, configs)
+        l2_exercises.pcl_to_bev(cropped_pcl, configs)
 
         # Example C2-3-3 : Minimum and maximum intensity
         # l2_examples.min_max_intensity(lidar_pcl)
