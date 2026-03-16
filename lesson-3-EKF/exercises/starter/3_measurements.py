@@ -6,6 +6,8 @@ import platform
 import matplotlib
 if platform.system() == 'Darwin' and importlib.util.find_spec('wx') is not None:
     matplotlib.use('wxagg') # change backend so that figure maximizing works on Mac as well
+else:
+    matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 class Camera:
@@ -19,22 +21,26 @@ class Camera:
     def get_hx(self, x):    
         # calculate nonlinear measurement expectation value h(x)   
         hx = np.zeros((2,1))
-
-        ############
-        # TODO: implement and return h(x)
-        ############
-        
-        return hx
+        # check and print error message if dividing by zero
+        if x[0,0]==0:
+            raise NameError('Jacobian not defined for x[0]=0!')
+        else:
+            hx[0,0] = self.c_i - self.f_i*x[1,0]/x[0,0] # project to image coordinates
+            hx[1,0] = self.c_j - self.f_j*x[2,0]/x[0,0]
+            return hx  
     
     def get_H(self, x):
         # calculate Jacobian H at current x from h(x)
         H = np.matrix(np.zeros((2, 6)))
-
-        ############
-        # TODO: implement and return H
-        ############ 
-        
-        return H
+        # check and print error message if dividing by zero
+        if x[0,0]==0:
+            raise NameError('Jacobian not defined for x[0]=0!')
+        else:
+            H[0,0] = self.f_i * x[1,0] / (x[0,0]**2)
+            H[1,0] = self.f_j * x[2,0] / (x[0,0]**2)
+            H[0,1] = -self.f_i / x[0,0]
+            H[1,2] = -self.f_j / x[0,0]
+            return H  
  
  
 def calc_Jacobian(x):
@@ -52,22 +58,22 @@ def calc_Jacobian(x):
 
     # calculate Taylor series expansion point
     hx_orig = cam.get_hx(x)
-    ax1.plot(x[0], hx_orig[0], marker='x', color='green', label='expansion point x')
-    ax2.plot(x[0], hx_orig[1], marker='x', color='green', label='expansion point x')
+    ax1.plot(x[0,0], hx_orig[0,0], marker='x', color='green', label='expansion point x')
+    ax2.plot(x[0,0], hx_orig[1,0], marker='x', color='green', label='expansion point x')
 
     # calculate linear approximation at this point 
     s1 = float(H[0,0]) # slope of tangent given by Jacobian H
     s2 = float(H[1,0])
-    i1 = float(hx_orig[0] - s1*x[0]) # intercept i = y - s*x
-    i2 = float(hx_orig[1] - s2*x[0])
+    i1 = float(hx_orig[0,0] - s1*x[0,0]) # intercept i = y - s*x
+    i2 = float(hx_orig[1,0] - s2*x[0,0])
 
     # calculate nonlinear measurement function h
     for px in range(1,50):
-        x[0] = px
+        x[0,0] = px
         hx = cam.get_hx(x)
         plot_x.append(px)
-        plot_y1.append(hx[0])
-        plot_y2.append(hx[1])
+        plot_y1.append(hx[0,0])
+        plot_y2.append(hx[1,0])
         lin_y1.append(s1*px + i1)
         lin_y2.append(s2*px + i2)
         
@@ -79,7 +85,10 @@ def calc_Jacobian(x):
 
     # maximize window     
     mng = plt.get_current_fig_manager()
-    mng.frame.Maximize(True)
+    try:
+        mng.frame.Maximize(True)
+    except AttributeError:
+        pass
 
     # legend
     ax1.legend(loc='center left', shadow=True, fontsize='large', bbox_to_anchor=(0.5, 0.1))
