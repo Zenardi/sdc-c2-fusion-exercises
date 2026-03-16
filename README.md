@@ -14,6 +14,7 @@ This directory contains: `examples`, `exercises/starter`, and `exercises/solutio
 ## Environment
 
 Udacity students can make use of the pre-configured workspace environment within the classroom. Alternatively, you can create an environment using the `requirements.txt` file included in this repository, using a command like `pip install -r requirements.txt` if you have pip installed, or creating an Anaconda environment in similar fashion.
+On Linux, `wxPython` is not installed by default because it is only used for the optional `wxagg` matplotlib backend on macOS. If you specifically want that backend, install the required GTK development packages first and then install `wxPython` manually.
 
 ### Waymo Open Dataset Reader
 The Waymo Open Dataset Reader is a very convenient toolbox that allows you to access sequences from the Waymo Open Dataset without the need of installing all of the heavy-weight dependencies that come along with the official toolbox. The installation instructions can be found in `tools/waymo_reader/README.md`. 

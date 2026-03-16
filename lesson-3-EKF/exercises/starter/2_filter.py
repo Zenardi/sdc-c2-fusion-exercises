@@ -1,6 +1,12 @@
 import numpy as np
+import importlib.util
+import platform
+
 import matplotlib
-matplotlib.use('wxagg') # change backend so that figure maximizing works on Mac as well  
+if platform.system() == 'Darwin' and importlib.util.find_spec('wx') is not None:
+    matplotlib.use('wxagg') # change backend so that figure maximizing works on Mac as well
+else:
+    matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 class Filter:
@@ -12,30 +18,28 @@ class Filter:
 
     def F(self):
         # system matrix
-
-        ############
-        # TODO: implement and return F
-        ############
-        
-        pass
+        dt = self.dt
+        return np.matrix([[1, 0, dt, 0],
+                        [0, 1, 0, dt],
+                        [0, 0, 1, 0],
+                        [0, 0, 0, 1]])
 
     def Q(self):
         # process noise covariance Q
-
-        ############
-        # TODO: implement and return Q
-        ############
+        q = self.q
+        dt = self.dt
+        q1 = ((dt**3)/3) * q 
+        q2 = ((dt**2)/2) * q 
+        q3 = dt * q 
+        return np.matrix([[q1, 0, q2, 0],
+                        [0, q1, 0, q2],
+                        [q2, 0, q3, 0],
+                        [0, q2, 0,  q3]])
         
-        pass
-    
     def H(self):
         # measurement matrix H
-
-        ############
-        # TODO: implement and return H
-        ############
-    
-        pass
+        return np.matrix([[1, 0, 0, 0],
+                       [0, 1, 0, 0]]) 
     
     def predict(self, x, P):
         # predict state and estimation error covariance to next timestep
@@ -53,7 +57,7 @@ class Filter:
         x = x + K*gamma # state update
         I = np.identity(self.dim_state)
         P = (I - K*H) * P # covariance update
-        return x, P   
+        return x, P     
         
         
 def run_filter():
@@ -88,8 +92,8 @@ def run_filter():
         
         # measurement generation
         sigma_z = 0.2 # measurement noise 
-        z = np.matrix([[float(gt[0]) + np.random.normal(0, sigma_z)],
-                       [float(gt[1]) + np.random.normal(0, sigma_z)]]) # generate noisy measurement
+        z = np.matrix([[float(gt[0, 0]) + np.random.normal(0, sigma_z)],
+                       [float(gt[1, 0]) + np.random.normal(0, sigma_z)]]) # generate noisy measurement
         R = np.matrix([[sigma_z**2, 0], # measurement noise covariance matrix
                             [0, sigma_z**2]])
         
@@ -97,9 +101,9 @@ def run_filter():
         x, P = KF.update(x, P, z, R) # update with measurement
         
         # visualization    
-        ax.scatter(float(x[0]), float(x[1]), color='green', s=40, marker='x', label='track')
-        ax.scatter(float(z[0]), float(z[1]), color='blue', marker='.', label='measurement')
-        ax.scatter(float(gt[0]), float(gt[1]), color='gray', s=40, marker='+', label='ground truth')
+        ax.scatter(float(x[0, 0]), float(x[1, 0]), color='green', s=40, marker='x', label='track')
+        ax.scatter(float(z[0, 0]), float(z[1, 0]), color='blue', marker='.', label='measurement')
+        ax.scatter(float(gt[0, 0]), float(gt[1, 0]), color='gray', s=40, marker='+', label='ground truth')
         ax.set_xlabel('x [m]')
         ax.set_ylabel('y [m]')
         ax.set_xlim(0,10)
@@ -107,7 +111,10 @@ def run_filter():
            
         # maximize window        
         mng = plt.get_current_fig_manager()
-        mng.frame.Maximize(True) 
+        try:
+            mng.frame.Maximize(True)
+        except AttributeError:
+            pass
         
         # remove repeated labels
         handles, labels = ax.get_legend_handles_labels()

@@ -5,7 +5,7 @@ easydict
 torch
 pillow
 matplotlib
-wxpython
+wxPython==4.2.5; platform_system == "Darwin"
 shapely
 tqdm
 open3d

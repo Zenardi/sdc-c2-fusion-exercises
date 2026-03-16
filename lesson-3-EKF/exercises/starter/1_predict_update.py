@@ -21,21 +21,22 @@ class Filter:
     
     def predict(self, x, P):
         # predict state and estimation error covariance to next timestep
-
-        ############
-        # TODO: implement prediction step
-        ############
-        
+        F = self.F()
+        x = F*x # state prediction
+        P = F*P*F.transpose() + self.Q() # covariance prediction
         return x, P
+
 
     def update(self, x, P, z, R):
         # update state and covariance with associated measurement
-
-        ############
-        # TODO: implement update step
-        ############
-        
-        return x, P     
+        H = self.H() # measurement matrix
+        gamma = z - H*x # residual
+        S = H*P*H.transpose() + R # covariance of residual
+        K = P*H.transpose()*np.linalg.inv(S) # Kalman gain
+        x = x + K*gamma # state update
+        I = np.identity(self.dim_state)
+        P = (I - K*H) * P # covariance update
+        return x, P       
         
         
 def run_filter():

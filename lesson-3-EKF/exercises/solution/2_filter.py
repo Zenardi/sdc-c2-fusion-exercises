@@ -1,6 +1,10 @@
 import numpy as np
+import importlib.util
+import platform
+
 import matplotlib
-matplotlib.use('wxagg') # change backend so that figure maximizing works on Mac as well  
+if platform.system() == 'Darwin' and importlib.util.find_spec('wx') is not None:
+    matplotlib.use('wxagg') # change backend so that figure maximizing works on Mac as well
 import matplotlib.pyplot as plt
 
 class Filter:
