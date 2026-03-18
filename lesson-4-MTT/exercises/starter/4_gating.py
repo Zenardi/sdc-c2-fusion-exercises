@@ -42,30 +42,41 @@ class Association:
         gamma = meas.z - H*track.x
         S = H*track.P*H.transpose() + meas.R
         MHD = gamma.transpose()*np.linalg.inv(S)*gamma # Mahalanobis distance formula
-        return MHD
+        return MHD.item()
     
     def gating(self, MHD): 
         # check if measurement lies inside gate
-
-        ############
-        # TODO: return True if measurement lies inside gate, otherwise return False
-        ############
-        
-        return True
+        limit = chi2.ppf(0.95, df=2)
+        if MHD < limit:
+            return True
+        else:
+            return False
         
     def get_closest_track_and_meas(self):
         # find closest track and measurement for next update
+        A = self.association_matrix
+        if np.min(A) == np.inf:
+            return np.nan, np.nan
 
-        ############
-        # TODO: 
-        # - find indices of closest track and measurement for next update
-        # - return NAN if no more associations can be found (i.e. minimum entry in association matrix is infinity)
-        # - delete row and column in association matrix for closest track and measurement
-        # - remove found track number from unassigned_tracks, meas number from unassigned_meas
-        # - return indices of closest track and measurement for next update
-        ############
+        # get indices of minimum entry
+        ij_min = np.unravel_index(np.argmin(A, axis=None), A.shape) 
+        ind_track = ij_min[0]
+        ind_meas = ij_min[1]
+
+        # delete row and column for next update
+        A = np.delete(A, ind_track, 0) 
+        A = np.delete(A, ind_meas, 1)
+        self.association_matrix = A
         
-        return np.nan, np.nan
+        # update this track with this measurement
+        update_track = self.unassigned_tracks[ind_track] 
+        update_meas = self.unassigned_meas[ind_meas]
+        
+        # remove this track and measurement from list
+        self.unassigned_tracks.remove(update_track) 
+        self.unassigned_meas.remove(update_meas)
+        
+        return update_track, update_meas
 
 ################## 
 class Track:
@@ -119,14 +130,14 @@ def run():
         # tracks
         track = Track(i+1)
         track_list.append(track)
-        ax.scatter(float(-track.x[1]), float(track.x[0]), marker='x', color='red', label='track')
-        ax.text(float(-track.x[1]), float(track.x[0]), str(track.id), color='red')
+        ax.scatter(float(-track.x[1, 0]), float(track.x[0, 0]), marker='x', color='red', label='track')
+        ax.text(float(-track.x[1, 0]), float(track.x[0, 0]), str(track.id), color='red')
         
         # measurements
-        meas = Measurement(i+1, float(track.x[0]), float(track.x[1]))
+        meas = Measurement(i+1, float(track.x[0, 0]), float(track.x[1, 0]))
         meas_list.append(meas)
-        ax.scatter(float(-meas.z[1]), float(meas.z[0]), marker='o', color='green', label='measurement')
-        ax.text(float(-meas.z[1]), float(meas.z[0]), str(meas.id), color='green')
+        ax.scatter(float(-meas.z[1, 0]), float(meas.z[0, 0]), marker='o', color='green', label='measurement')
+        ax.text(float(-meas.z[1, 0]), float(meas.z[0, 0]), str(meas.id), color='green')
 
     # calculate association matrix
     association.associate(track_list, meas_list)
@@ -139,9 +150,9 @@ def run():
         for meas in meas_list:
             dist = association.association_matrix[track.id-1, meas.id-1]
             if dist < np.inf: 
-                ax.plot([float(-track.x[1]), float(-meas.z[1])], [float(track.x[0]), float(meas.z[0])], color='gray')
+                ax.plot([float(-track.x[1, 0]), float(-meas.z[1, 0])], [float(track.x[0, 0]), float(meas.z[0, 0])], color='gray')
                 str_dist = "{:.2f}".format(dist)
-                ax.text(float((-track.x[1] - meas.z[1])/2), float((track.x[0] + meas.z[0])/2), str_dist)
+                ax.text(float((-track.x[1, 0] - meas.z[1, 0])/2), float((track.x[0, 0] + meas.z[0, 0])/2), str_dist)
 
     # update associated tracks with measurements
     matrix_orig = association.association_matrix
@@ -156,9 +167,9 @@ def run():
         track = track_list[ind_track]
         meas = meas_list[ind_meas]
         dist = matrix_orig[ind_track, ind_meas]
-        ax.plot([float(-track.x[1]), float(-meas.z[1])], [float(track.x[0]), float(meas.z[0])], color='blue', label='association')
+        ax.plot([float(-track.x[1, 0]), float(-meas.z[1, 0])], [float(track.x[0, 0]), float(meas.z[0, 0])], color='blue', label='association')
         str_dist = "{:.2f}".format(dist)
-        ax.text(float((-track.x[1] - meas.z[1])/2), float((track.x[0] + meas.z[0])/2), str_dist)
+        ax.text(float((-track.x[1, 0] - meas.z[1, 0])/2), float((track.x[0, 0] + meas.z[0, 0])/2), str_dist)
         print('found association between track', ind_track+1, 'and measurement', ind_meas+1, 'with MHD =', str_dist)
         print('New association matrix:', association.association_matrix)    
         print('New unassigned_tracks list:', association.unassigned_tracks)
@@ -169,7 +180,10 @@ def run():
     # visualization
     # maximize window     
     mng = plt.get_current_fig_manager()
-    mng.frame.Maximize(True)
+    try:
+        mng.frame.Maximize(True)  # wxagg backend (macOS)
+    except AttributeError:
+        mng.window.showMaximized()  # Qt backend (Linux/Windows)
 
     # remove repeated labels
     handles, labels = ax.get_legend_handles_labels()
