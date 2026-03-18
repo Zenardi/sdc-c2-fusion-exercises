@@ -72,11 +72,11 @@ def run():
         pos_sens = cam.veh_to_sens*pos_veh # transform from vehicle to sensor coordinates
         if result == True:
             col = 'green'
-            ax.scatter(float(-pos_sens[1]), float(pos_sens[0]), marker='o', color=col, label='visible track')
+            ax.scatter(float(-pos_sens[1, 0]), float(pos_sens[0, 0]), marker='o', color=col, label='visible track')
         else:
             col = 'red'
-            ax.scatter(float(-pos_sens[1]), float(pos_sens[0]), marker='o', color=col, label='invisible track')
-        ax.text(float(-pos_sens[1]), float(pos_sens[0]), str(result))
+            ax.scatter(float(-pos_sens[1, 0]), float(pos_sens[0, 0]), marker='o', color=col, label='invisible track')
+        ax.text(float(-pos_sens[1, 0]), float(pos_sens[0, 0]), str(result))
         
     # plot FOV    
     ax.plot([0, -5], [0, 5], color='blue', label='field of view') 
@@ -84,7 +84,10 @@ def run():
 
     # maximize window     
     mng = plt.get_current_fig_manager()
-    mng.frame.Maximize(True)
+    try:
+        mng.frame.Maximize(True)  # wxagg backend (macOS)
+    except AttributeError:
+        mng.window.showMaximized()  # Qt backend (Linux/Windows)
 
     # remove repeated labels
     handles, labels = ax.get_legend_handles_labels()

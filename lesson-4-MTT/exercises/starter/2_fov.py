@@ -27,13 +27,18 @@ class Camera:
     
     def in_fov(self, x):
         # check if an object x can be seen by this sensor
-
-        ############
-        # TODO: Return True if x lies in sensor's field of view, otherwise return False. 
-        # Don't forget to transform from vehicle to sensor coordinates.
-        ############
-            
-        return False
+        pos_veh = np.ones((4, 1)) # homogeneous coordinates
+        pos_veh[0:3] = x[0:3] 
+        pos_sens = self.veh_to_sens*pos_veh # transform from vehicle to sensor coordinates
+        visible = False
+        # make sure to not divide by zero - we can exclude the whole negative x-range here
+        if pos_sens[0] > 0: 
+            alpha = np.arctan(pos_sens[1]/pos_sens[0]) # calc angle between object and x-axis
+            # no normalization needed because returned alpha always lies between [-pi/2, pi/2]
+            if alpha > self.fov[0] and alpha < self.fov[1]:
+                visible = True
+                
+        return visible
         
 #################
 def run():
@@ -66,11 +71,11 @@ def run():
         pos_sens = cam.veh_to_sens*pos_veh # transform from vehicle to sensor coordinates
         if result == True:
             col = 'green'
-            ax.scatter(float(-pos_sens[1]), float(pos_sens[0]), marker='o', color=col, label='visible track')
+            ax.scatter(float(-pos_sens[1, 0]), float(pos_sens[0, 0]), marker='o', color=col, label='visible track')
         else:
             col = 'red'
-            ax.scatter(float(-pos_sens[1]), float(pos_sens[0]), marker='o', color=col, label='invisible track')
-        ax.text(float(-pos_sens[1]), float(pos_sens[0]), str(result))
+            ax.scatter(float(-pos_sens[1, 0]), float(pos_sens[0, 0]), marker='o', color=col, label='invisible track')
+        ax.text(float(-pos_sens[1, 0]), float(pos_sens[0, 0]), str(result))
         
     # plot FOV    
     ax.plot([0, -5], [0, 5], color='blue', label='field of view') 
@@ -78,7 +83,10 @@ def run():
 
     # maximize window     
     mng = plt.get_current_fig_manager()
-    mng.frame.Maximize(True)
+    try:
+        mng.frame.Maximize(True)  # wxagg backend (macOS)
+    except AttributeError:
+        mng.window.showMaximized()  # Qt backend (Linux/Windows)
 
     # remove repeated labels
     handles, labels = ax.get_legend_handles_labels()
