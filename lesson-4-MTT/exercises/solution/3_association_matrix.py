@@ -36,7 +36,7 @@ class Association:
         gamma = meas.z - H*track.x
         S = H*track.P*H.transpose() + meas.R
         MHD = gamma.transpose()*np.linalg.inv(S)*gamma # Mahalanobis distance formula
-        return MHD
+        return MHD.item()
     
 
 ################## 
@@ -91,14 +91,14 @@ def run():
         # tracks
         track = Track(i+1)
         track_list.append(track)
-        ax.scatter(float(-track.x[1]), float(track.x[0]), marker='x', color='red', label='track')
-        ax.text(float(-track.x[1]), float(track.x[0]), str(track.id), color='red')
+        ax.scatter(float(-track.x[1, 0]), float(track.x[0, 0]), marker='x', color='red', label='track')
+        ax.text(float(-track.x[1, 0]), float(track.x[0, 0]), str(track.id), color='red')
         
         # measurements
-        meas = Measurement(i+1, float(track.x[0]), float(track.x[1]))
+        meas = Measurement(i+1, float(track.x[0, 0]), float(track.x[1, 0]))
         meas_list.append(meas)
-        ax.scatter(float(-meas.z[1]), float(meas.z[0]), marker='o', color='green', label='measurement')
-        ax.text(float(-meas.z[1]), float(meas.z[0]), str(meas.id), color='green')
+        ax.scatter(float(-meas.z[1, 0]), float(meas.z[0, 0]), marker='o', color='green', label='measurement')
+        ax.text(float(-meas.z[1, 0]), float(meas.z[0, 0]), str(meas.id), color='green')
 
     # calculate association matrix
     association.associate(track_list, meas_list)
@@ -109,13 +109,16 @@ def run():
         for meas in meas_list:
             dist = association.association_matrix[track.id-1, meas.id-1]
             if dist < np.inf: 
-                ax.plot([float(-track.x[1]), float(-meas.z[1])], [float(track.x[0]), float(meas.z[0])], color='gray')
+                ax.plot([float(-track.x[1, 0]), float(-meas.z[1, 0])], [float(track.x[0, 0]), float(meas.z[0, 0])], color='gray')
                 str_dist = "{:.2f}".format(dist)
-                ax.text(float((-track.x[1] - meas.z[1])/2), float((track.x[0] + meas.z[0])/2), str_dist)
+                ax.text(float((-track.x[1, 0] - meas.z[1, 0])/2), float((track.x[0, 0] + meas.z[0, 0])/2), str_dist)
 
     # maximize window     
     mng = plt.get_current_fig_manager()
-    mng.frame.Maximize(True)
+    try:
+        mng.frame.Maximize(True)  # wxagg backend (macOS)
+    except AttributeError:
+        mng.window.showMaximized()  # Qt backend (Linux/Windows)
 
     # remove repeated labels
     handles, labels = ax.get_legend_handles_labels()
