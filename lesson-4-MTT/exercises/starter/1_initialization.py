@@ -14,12 +14,32 @@ class Track:
     def __init__(self, meas, id):
         print('creating track no.', id)
         self.id = id
+        
+        # transform measurement to vehicle coordinates
+        pos_sens = np.ones((4, 1)) # homogeneous coordinates
+        pos_sens[0:3] = meas.z[0:3] 
+        pos_veh = meas.sens_to_veh*pos_sens
+        
+        # save initial state from measurement
         self.x = np.zeros((6,1))
-        self.P = np.zeros((6,6))
-
-        ############
-        # TODO: initialize self.x and self.P from measurement z and R, don't forget coordinate transforms
-        ############
+        self.x[0:3] = pos_veh[0:3]
+        
+        # set up position estimation error covariance
+        M_rot = meas.sens_to_veh[0:3, 0:3]
+        P_pos = M_rot * meas.R * np.transpose(M_rot)
+        
+        # set up velocity estimation error covariance
+        sigma_p44 = 50 # initial setting for estimation error covariance P entry for vx
+        sigma_p55 = 50 # initial setting for estimation error covariance P entry for vy
+        sigma_p66 = 5 # initial setting for estimation error covariance P entry for vz
+        P_vel = np.matrix([[sigma_p44**2, 0, 0],
+                        [0, sigma_p55**2, 0],
+                        [0, 0, sigma_p66**2]])
+        
+        # overall covariance initialization
+        self.P = np.zeros((6, 6))
+        self.P[0:3, 0:3] = P_pos
+        self.P[3:6, 3:6] = P_vel
         
         
 ###################  
@@ -64,12 +84,18 @@ def visualize(track, meas):
     z_sens = np.ones((4, 1)) # homogeneous coordinates
     z_sens[0:3] = meas.z[0:3] 
     z_veh = meas.sens_to_veh * z_sens
-    ax3.scatter(-float(z_veh[1]), float(z_veh[0]), marker='o', color='blue', label='measurement')
+    ax3.scatter(-float(z_veh[1, 0]), float(z_veh[0, 0]), marker='o', color='blue', label='measurement')
     ax3.scatter(-track.x[1], track.x[0], color='red', s=80, marker='x', label='initialized track')
         
     # maximize window     
     mng = plt.get_current_fig_manager()
-    mng.frame.Maximize(True)
+    try:
+        mng.frame.Maximize(True)  # wxAgg backend
+    except AttributeError:
+        try:
+            mng.window.showMaximized()  # Qt backend
+        except AttributeError:
+            pass
 
     # legend and axes
     for ax in (ax1, ax2, ax3):
